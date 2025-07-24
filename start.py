@@ -1,39 +1,42 @@
-from openpyxl import Workbook, load_workbook
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from collections import defaultdict
 
-# Si quieres VOLCAR el Excel original y añadir lo nuevo, descomenta las 3 lineas siguientes:
-# wb = load_workbook('Asignaturas_Medicina_Formateado.xlsx')
-# ws = wb.active
-# ws_new = wb.copy_worksheet(ws)
-# O (más simple) sigue generando toda la tabla nueva:
+# Cabecera estándar
+header = ["Asignatura", "Título", "Autores", "Edición / Año", "Editorial", "Notas"]
 
-wb = Workbook()
-ws = wb.active
-ws.title = "Sheet1"
-
-# Cabecera exacta:
-ws.append([
-    "Asignatura", "Título", "Autores", "Edición / Año", "Editorial", "Notas"
-])
-
-# ----------- DATOS EXISTENTES (de tu archivo) -----------
-datos_originales = [
-    # (Solo los 3 primeros títulos de muestra, el resto igual, debes copiar todos los tuyos)
-    ["Anatomía Funcional i Embriologia de l'Aparell Locomotor", "Benninghoff y Drenckhahn, compendio de anatomía", "Drenckhahn D, Waschke J, Negrete JH", "2010", "Médica Panamericana", ""],
-    ["", "Feneis: nomenclatura anatómica ilustrada", "Dauber W, Feneis H, Spitzer G", "2007 (5a ed.)", "Masson", ""],
-    ["", "Gray Anatomía para estudiantes", "Drake RL, Vogl W, Mitchell AWM", "2015 (3ª ed.)", "Elsevier", ""],
-    # ... AÑADE AQUÍ EL RESTO DE TUS FILAS EXISTENTES, igual que aparecen en tu Excel ...
+# Copia-pega aquí todas las filas del archivo completo con las que empiezas, más las filas nuevas que necesitas.
+# Incluye todas las filas del ejemplo que enviaste y añade después las asignaturas/fuentes que faltaban.
+filas = [
+    # -------------------- DATOS INICIALES (según tu ejemplo EN IMAGEN) -------------------
+    ["Anatomía Funcional i Embriologia de l'Aparell Locomotor","Benninghoff y Drenckhahn, compendio de anatomía","Drenckhahn D, Waschke J, Negrete JH","2010","Médica Panamericana",""],
+    ["","Feneis: nomenclatura anatómica ilustrada","Dauber W, Feneis H, Spitzer G","2007 (5a ed.)","Masson",""],
+    ["","Gray Anatomía para estudiantes","Drake RL, Vogl W, Mitchell AWM","2015 (3ª ed.)","Elsevier",""],
+    ["","Wolf-Heidegger’s atlas de anatomía","Köpf-Maier P, Wolf-Heidegger G","2000 (5ª ed.)","Marban","Disponible en inglés"],
+    ["","Fundamentos de anatomía: con orientación clínica","Moore KL, Agur AMR, Dalley AF","2015 (5ª ed.)","Wolters Kluwer",""],
+    ["","Atlas de anatomía humana","Netter FH","2015 (6ª ed.)","Elsevier Masson","Disponible en inglés"],
+    ["","Atlas de anatomía: con correlación clínica","Platzer W","2008 (9ª ed.)","Médica Panamericana","3 volúmenes"],
+    ["","Atlas de anatomía humana: estudio fotográfico","Rohen JW, Yokochi C, Lütjen-Drecoll E","2015 (8ª ed.)","Elsevier",""],
+    ["","Prometheus: texto y atlas de anatomía","Schünke M, Schulte E, Schumacher U","2015 (3ª ed.)","Médica Panamericana","3 volúmenes"],
+    ["","Atlas de anatomía humana de Sobotta","Paulsen F, Waschke J (eds.)","2012 (23ª ed.)","Elsevier","3 volúmenes"],
     ["Biología Celular y del Desarrollo","Molecular Biology of the Cell","Alberts B, et al.","2014 (6th ed.)","Garland Science","También en castellano"],
-    # ... etc ...
-    ["Bioestadística, Epidemiología e Investigación", "An Introduction to Medical Statistics", "Bland M", "2015 (4ª ed.)", "Oxford", ""],
-    # ... ETCÉTERA HASTA EL FINAL DE TU ARCHIVO ...
-]
+    ["","Biología Molecular de la Célula","Alberts B, et al.","2016 (6ª ed.)","Omega","También en inglés"],
+    ["","Embriología humana y biología del desarrollo","Carlson BM","2019 (6ª ed.)","Elsevier",""],
+    ["","Biología del Desarrollo","Gilbert SF","2019 (12ª ed.)","Médica Panamericana","También 11ª ed. en inglés"],
+    ["","Embriología humana","Larsen WJ","2020 (6ª ed.)","Elsevier Science","También 5ª ed. en inglés"],
+    ["","Embriología Clínica","Moore KL, Persaud TVN","2020 (11ª ed.)","Elsevier",""],
+    ["","Embriología médica de Langman","Sadler TW","2019 (14ª ed.)","Lippincott Williams & Wilkins",""],
+    ["","Principles of Development","Wolpert L, Tickle C, Martínez-Arias A","2019 (6th ed.)","Oxford University Press",""],
+    ["Bioestadística, Epidemiología e Investigación","An Introduction to Medical Statistics","Bland M","2015 (4ª ed.)","Oxford",""],
+    ["","Biostatistics","Daniel WW, Cross CL","2014 (10th ed.)","John Wiley & Sons","También 4ª ed. en castellano"],
+    ["","Epidemiología","Gordis L","2014 (5ª ed.)","Elsevier","También en inglés"],
+    ["","A Pocket Guide to Epidemiology","Kleinbaum DG, Sullivan KM, Barker ND","2007","Springer",""],
+    ["","Fundamentals of Biostatistics","Rosner BA","2011 (7ª ed.)","Cengage Learning",""],
 
-for fila in datos_originales:
-    ws.append(fila)
+    # -------------------- FILAS NUEVAS (añade aquí el BLOQUE NUEVO) ---------------------
 
-# ----------- FILAS NUEVAS DE TU TEXTO -----------
-# Biofísica Médica General
-biofisica = [
+    # Biofísica Médica General
     ["Biofísica Médica General", "Física para las ciencias de la vida", "Cromer AH", "1981 (2ª ed.)", "Reverté", ""],
     ["", "Física en la ciencia y en la industria", "Cromer AH", "1986", "Reverté", ""],
     ["", "Física y biofísica: radiaciones", "Dutreix J, Desgrez A, Bok B", "1980", "AC", ""],
@@ -46,13 +49,8 @@ biofisica = [
     ["", "Física para la ciencia y la tecnología", "Tipler PA, Mosca G", "2010 (6a ed.)", "Reverté", ""],
     ["", "Física para ciencias de la vida", "David Jou Mirabent, Josep Enric Llebot Rabagliati, Carlos Pérez García", "2009 (2a ed.)", "McGraw-Hill/Interamericana de España", ""],
     ["", "Biological physics: energy, information, life", "Nelson PC, Marko Radosavljevic, Sarina Bromberg", "2014 (5th print.)", "W.H. Freeman", ""],
-]
 
-for fila in biofisica:
-    ws.append(fila)
-
-# Biología Celular
-biologia_celular = [
+    # Biología Celular
     ["Biología Celular", "Biología molecular de la célula", "Alberts B, et al.", "2016 (6ª ed.)", "Omega", "También 6a ed. (2015) en inglés"],
     ["", "El Mundo de la célula", "Becker B, et al.", "2007 (6a edición)", "Addison Wesley", "También 9a ed. (2016) en inglés"],
     ["", "La célula", "Cooper GM, Hausman RM", "2017 (7a edición)", "Marbán", "También 7a ed. (2016) en inglés"],
@@ -62,13 +60,8 @@ biologia_celular = [
     ["", "Molecular Cell Biology", "Lodish H, et al.", "2016 (8th edition)", "MacMillan Learning", ""],
     ["", "Molecular Biology of the Cell", "Alberts B, et al.", "2022 (7th edition)", "W.W. Norton", ""],
     ["", "Essential Cell Biology", "Alberts B, et al.", "2013 (4th edition)", "Garland Science", ""],
-]
 
-for fila in biologia_celular:
-    ws.append(fila)
-
-# Biología Molecular
-biologia_molecular = [
+    # Biología Molecular
     ["Biología Molecular", "Biología molecular de la célula", "Alberts B, Wilson J, Hunt T", "2016 (6ª ed.)", "Omega", "También en inglés"],
     ["", "Bioquímica médica", "Baynes JW, Dominiczak MH", "2015 (4ª ed.)", "Elsevier", "También en inglés"],
     ["", "El mundo de la célula", "Becker WM, Kleinsmith LH, Hardin J", "2007 (6ª ed.)", "Addison Wesley", "También 9a ed. en inglés"],
@@ -93,17 +86,12 @@ biologia_molecular = [
     ["", "The Medical Biochemistry Page", "", "", "", "Pàgina web"],
     ["", "http://www.ncbi.nlm.nih.gov/BLAST/", "", "", "", "Pàgina web"],
     ["", "GTEX Portal", "", "", "", "https://gtexportal.org/home/"],
-    ["", "Protter", "", "", "", "http://wlab.ethz.ch/protter/start/"]
-]
+    ["", "Protter", "", "", "", "http://wlab.ethz.ch/protter/start/"],
 
-for fila in biologia_molecular:
-    ws.append(fila)
+    # Bioquímica Básica
+    ["Bioquímica Básica", "", "", "", "", "Nada aún"],
 
-# Bioquímica Básica (vacía)
-ws.append(["Bioquímica Básica", "", "", "", "", "Nada aún"])
-
-# Histología Humana
-histologia = [
+    # Histología Humana
     ["Histología Humana", "Geneser histología : 4a. edición", "Brüel A, Geneser F", "2015", "Editorial Médica Panamericana", ""],
     ["", "Histología : atlas en color y texto", "Gartner LP", "2018 (7a ed.)", "Wolters Kluwer", "También 7a ed. (2018) en inglés"],
     ["", "Texto de histología : atlas a color", "Gartner LP", "2017 (7a ed.)", "Elsevier", "También 4a ed. (2017) en inglés"],
@@ -118,27 +106,79 @@ histologia = [
     ["", "http://www.lumen.luc.edu/lumen/MedEd/Histo/frames/histo_frames.html", "", "", "", "Pàgina web"],
     ["", "http://cal.vet.upenn.edu/index.php?page=histology", "", "", "", "Pàgina web"],
     ["", "https://ubmedicina.ventana-vector.com/", "", "", "", "Pàgina web"],
-]
 
-for fila in histologia:
-    ws.append(fila)
-
-# Introducción a la Salud, Antropología, Demografía. Historia de la Medicina
-intro_salud = [
+    # Introducción a la Salud, Antropología, Demografía. Historia de la Medicina
     ["Introducción a la Salud, Antropología, Demografía. Historia de la Medicina", "¿Me está escuchando doctor? : un viaje por la mente de los médicos", "Groopman JE", "2008", "RBA", ""],
     ["", "Breve historia de la medicina", "López Piñero JM", "2000", "Alianza", ""],
-    ["", "Semmelweis", "Louis-Ferdinand Celine", "2014", "Ed Marbot", ""]
+    ["", "Semmelweis", "Louis-Ferdinand Celine", "2014", "Ed Marbot", ""],
+
+    # Inglés Médico
+    ["Inglés Médico", "Text electrònic — Articles actuals rellevants i recursos multimèdia — Materials publicats al Campus Virtual", "", "", "", ""]
 ]
 
-for fila in intro_salud:
+# -- Crea el archivo Excel --
+wb = Workbook()
+ws = wb.active
+ws.title = "Sheet1"
+ws.append(header)
+
+# Inserta todas las filas
+for fila in filas:
     ws.append(fila)
 
-# Inglés Médico
-ws.append([
-    "Inglés Médico", "Text electrònic — Articles actuals rellevants i recursos multimèdia — Materials publicats al Campus Virtual", "", "", "", ""
-])
+# -- Ajusta anchuras de columna (editables) --
+ancho_cols = [28, 52, 36, 26, 35, 35]
+for i, ancho in enumerate(ancho_cols, 1):
+    ws.column_dimensions[get_column_letter(i)].width = ancho
 
-# Guardar archivo
-output_file = "Asignaturas_Medicina_Completo.xlsx"
-wb.save(output_file)
-print("Archivo generado como Asignaturas_Medicina_Completo.xlsx")
+# -- Combina celdas de la columna Asignatura con mismo valor (como en tu Excel) --
+asig_col = 1
+asig_map = defaultdict(list)
+current_asig = None
+for idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=1, values_only=True), start=2):
+    val = row[0]
+    if val:
+        current_asig = val
+    asig_map[current_asig].append(idx)
+for fila_indices in asig_map.values():
+    if len(fila_indices) > 1:
+        ws.merge_cells(start_row=fila_indices[0], start_column=asig_col,
+                       end_row=fila_indices[-1], end_column=asig_col)
+
+# --- Estilos: encabezado, filas alternas, wrap, bordes ---
+header_fill = PatternFill("solid", fgColor="1976D2")
+header_font = Font(bold=True, color="FFFFFF")
+alt_1 = PatternFill("solid", fgColor="E3F2FD")
+alt_2 = PatternFill("solid", fgColor="FFFFFF")
+border = Border(
+    left=Side(style='thin', color='888888'),
+    right=Side(style='thin', color='888888'),
+    top=Side(style='thin', color='888888'),
+    bottom=Side(style='thin', color='888888'),
+)
+wrap = Alignment(vertical="top", horizontal="left", wrap_text=True)
+
+for idx, row in enumerate(ws.iter_rows(min_row=1, max_row=ws.max_row), start=1):
+    if idx == 1:
+        for cell in row:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = border
+    else:
+        fill = alt_1 if idx % 2 == 0 else alt_2
+        for cell in row:
+            cell.fill = fill
+            cell.border = border
+            cell.alignment = wrap
+            cell.font = Font(name="Calibri", size=11)
+
+# Ajusta altura automática por número de líneas estimadas
+for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+    max_lines = max(str(cell.value).count('\n')+1 if cell.value else 1 for cell in row)
+    ws.row_dimensions[row[0].row].height = max(18, 16*max_lines)
+
+# -- Guarda Excel --
+nombre_archivo = "Asignaturas_Medicina_Completo_Estilo.xlsx"
+wb.save(nombre_archivo)
+print(f"\nArchivo creado: {nombre_archivo}\n¡Ábrelo en Excel para ver los estilos y la agrupación por asignatura!")
